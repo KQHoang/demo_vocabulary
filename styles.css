@@ -1,0 +1,33 @@
+/* Custom styles for the sidebar and content */
+.nav-pills .nav-link {
+    color: #495057;
+    border-radius: 0;
+    text-align: left;
+    padding: 15px 20px;
+    border-left: 3px solid transparent;
+}
+
+.nav-pills .nav-link.active {
+    background-color: #e9ecef;
+    color: #007bff;
+    border-left: 3px solid #007bff;
+}
+
+.nav-pills .nav-link:hover:not(.active) {
+    background-color: #f8f9fa;
+    color: #007bff;
+}
+
+.tab-content {
+    min-height: calc(100vh - 50px);
+}
+
+.tab-pane h2 {
+    margin-bottom: 20px;
+    color: #343a40;
+}
+
+.tab-pane p {
+    line-height: 1.6;
+    color: #495057;
+}
