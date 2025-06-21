@@ -15,45 +15,13 @@
             <!-- Sidebar -->
             <div class="col-3 bg-light vh-100 p-0">
                 <div class="nav flex-column nav-pills" id="topicSidebar" role="tablist" aria-orientation="vertical">
-                    <a class="nav-link active" id="family-tab" data-bs-toggle="pill" href="#family" role="tab" aria-controls="family" aria-selected="true">Gia đình</a>
-                    <a class="nav-link" id="school-tab" data-bs-toggle="pill" href="#school" role="tab" aria-controls="school" aria-selected="false">Trường học</a>
-                    <a class="nav-link" id="healthcare-tab" data-bs-toggle="pill" href="#healthcare" role="tab" aria-controls="healthcare" aria-selected="false">Y tế</a>
+                    <!-- Sidebar items will be dynamically generated here -->
                 </div>
             </div>
             <!-- Content Area -->
             <div class="col-9 p-4">
                 <div class="tab-content" id="topicContent">
-                    <div class="tab-pane fade show active" id="family" role="tabpanel" aria-labelledby="family-tab">
-                        <h2>Gia đình</h2>
-                        <p>Đây là nội dung về chủ đề Gia đình. Bạn có thể tìm hiểu về các mối quan hệ trong gia đình, vai trò của từng thành viên, và các giá trị gia đình truyền thống.</p>
-                        <div class="vocabulary-quiz mt-4">
-                            <h4>Luyện tập từ vựng</h4>
-                            <div class="card">
-                                <div class="card-body">
-                                    <p class="card-text">Dịch từ sau sang tiếng Việt hoặc tiếng Anh:</p>
-<div class="d-flex align-items-center mb-3">
-    <h5 id="quiz-term" class="card-title me-2 mb-0">...</h5>
-    <button id="pronunciation-btn" class="btn btn-outline-secondary btn-sm" title="Nghe phát âm tiếng Anh">Phát âm</button>
-</div>
-                                    <div class="mb-3">
-                                        <label for="quiz-input" class="form-label">Câu trả lời của bạn:</label>
-                                        <input type="text" class="form-control" id="quiz-input" placeholder="Nhập câu trả lời">
-                                    </div>
-                                    <button id="continue-btn" class="btn btn-primary">Tiếp tục</button>
-                                    <div id="feedback" class="mt-3"></div>
-                                </div>
-                            </div>
-                            <p id="progress" class="mt-2">Hoàn thành: 0/0</p>
-                        </div>
-                    </div>
-                    <div class="tab-pane fade" id="school" role="tabpanel" aria-labelledby="school-tab">
-                        <h2>Trường học</h2>
-                        <p>Đây là nội dung về chủ đề Trường học. Nội dung bao gồm thông tin về hệ thống giáo dục, các cấp học, và vai trò của giáo viên và học sinh.</p>
-                    </div>
-                    <div class="tab-pane fade" id="healthcare" role="tabpanel" aria-labelledby="healthcare-tab">
-                        <h2>Y tế</h2>
-                        <p>Đây là nội dung về chủ đề Y tế. Nội dung đề cập đến các dịch vụ chăm sóc sức khỏe, bệnh viện, và các vấn đề sức khỏe cộng đồng.</p>
-                    </div>
+                    <!-- Content panes will be dynamically generated here -->
                 </div>
             </div>
         </div>
@@ -63,5 +31,60 @@
     <!-- Custom JS -->
     <script src="topics.js"></script>
     <script src="vocabulary_quiz.js"></script>
+    <script>
+    // Dynamically generate sidebar and content panes based on topics
+    document.addEventListener('DOMContentLoaded', function() {
+        const sidebar = document.getElementById('topicSidebar');
+        const contentArea = document.getElementById('topicContent');
+        
+        topics.forEach((topic, index) => {
+            // Create sidebar item
+            const link = document.createElement('a');
+            link.className = `nav-link ${index === 0 ? 'active' : ''}`;
+            link.id = `${topic.id}-tab`;
+            link.setAttribute('data-bs-toggle', 'pill');
+            link.href = `#${topic.id}`;
+            link.role = 'tab';
+            link.setAttribute('aria-controls', topic.id);
+            link.setAttribute('aria-selected', index === 0 ? 'true' : 'false');
+            link.textContent = topic.name;
+            sidebar.appendChild(link);
+            
+            // Create content pane
+            const pane = document.createElement('div');
+            pane.className = `tab-pane fade ${index === 0 ? 'show active' : ''}`;
+            pane.id = topic.id;
+            pane.role = 'tabpanel';
+            pane.setAttribute('aria-labelledby', `${topic.id}-tab`);
+            pane.innerHTML = `
+                <h2>${topic.name}</h2>
+                <p>Đây là nội dung về chủ đề ${topic.name}. Bạn có thể tìm hiểu thêm về các từ vựng liên quan đến chủ đề này.</p>
+                <div class="vocabulary-quiz mt-4">
+                    <h4>Luyện tập từ vựng</h4>
+                    <div class="card">
+                        <div class="card-body">
+                            <p class="card-text">Dịch từ sau sang tiếng Việt hoặc tiếng Anh:</p>
+                            <div class="d-flex align-items-center mb-3">
+                                <h5 id="quiz-term-${topic.id}" class="card-title me-2 mb-0">...</h5>
+                                <button id="pronunciation-btn-${topic.id}" class="btn btn-outline-secondary btn-sm" title="Nghe phát âm tiếng Anh">Phát âm</button>
+                            </div>
+                            <div class="mb-3">
+                                <label for="quiz-input-${topic.id}" class="form-label">Câu trả lời của bạn:</label>
+                                <input type="text" class="form-control" id="quiz-input-${topic.id}" placeholder="Nhập câu trả lời">
+                            </div>
+                            <button id="continue-btn-${topic.id}" class="btn btn-primary">Tiếp tục</button>
+                            <div id="feedback-${topic.id}" class="mt-3"></div>
+                        </div>
+                    </div>
+                    <p id="progress-${topic.id}" class="mt-2">Hoàn thành: 0/0</p>
+                </div>
+            `;
+            contentArea.appendChild(pane);
+        });
+        
+        // Initialize quizzes after DOM elements are created
+        initializeQuizzes();
+    });
+    </script>
 </body>
 </html>

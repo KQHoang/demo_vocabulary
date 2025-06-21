@@ -1,34 +1,55 @@
 // Vocabulary Quiz Functionality
-document.addEventListener('DOMContentLoaded', function() {
-    // Load vocabulary data
-    fetch('vocabulary/family_vocabulary.json')
-        .then(response => response.json())
-        .then(data => {
-            initializeQuiz(data);
-        })
-        .catch(error => console.error('Error loading vocabulary data:', error));
-});
+    // Initialization is triggered from index.html after DOM elements are created
 
-let vocabularyData = [];
-let usedWords = [];
-let missedWords = [];
-let currentWord = null;
-let showEnglish = false;
-let isReviewMode = false;
+let quizzes = {}; // Object to store quiz data for each topic
 
-function initializeQuiz(data) {
-    vocabularyData = data;
-    loadNextWord();
-    document.getElementById('continue-btn').addEventListener('click', validateAnswer);
-    document.getElementById('quiz-input').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            validateAnswer();
+function initializeQuizzes() {
+    topics.forEach(topic => {
+        quizzes[topic.id] = {
+            vocabularyData: [],
+            usedWords: [],
+            missedWords: [],
+            currentWord: null,
+            showEnglish: false,
+            isReviewMode: false,
+            isInitialized: false
+        };
+        
+        // Load vocabulary data for this topic
+        fetch(`vocabulary/${topic.fileName}`)
+            .then(response => response.json())
+            .then(data => {
+                quizzes[topic.id].vocabularyData = data;
+                quizzes[topic.id].isInitialized = true;
+                if (topic.id === topics[0].id) {
+                    loadNextWord(topic.id);
+                }
+            })
+            .catch(error => console.error(`Error loading vocabulary data for ${topic.id}:`, error));
+        
+        // Add event listeners for this topic's quiz elements
+        document.getElementById(`continue-btn-${topic.id}`).addEventListener('click', () => validateAnswer(topic.id));
+        document.getElementById(`quiz-input-${topic.id}`).addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                validateAnswer(topic.id);
+            }
+        });
+        document.getElementById(`pronunciation-btn-${topic.id}`).addEventListener('click', () => playPronunciation(topic.id));
+    });
+    
+    // Add event listener for tab changes to load quiz data for the selected topic
+    document.getElementById('topicSidebar').addEventListener('click', function(e) {
+        if (e.target.classList.contains('nav-link')) {
+            const topicId = e.target.id.split('-')[0];
+            if (quizzes[topicId] && quizzes[topicId].isInitialized && quizzes[topicId].usedWords.length === 0) {
+                loadNextWord(topicId);
+            }
         }
     });
-    document.getElementById('pronunciation-btn').addEventListener('click', playPronunciation);
 }
 
-function playPronunciation() {
+function playPronunciation(topicId) {
+    const currentWord = quizzes[topicId].currentWord;
     if (currentWord) {
         const utterance = new SpeechSynthesisUtterance(currentWord.english);
         utterance.lang = 'en-US';
@@ -36,79 +57,82 @@ function playPronunciation() {
     }
 }
 
-function loadNextWord() {
-    if (usedWords.length === vocabularyData.length) {
-        if (missedWords.length > 0 && !isReviewMode) {
-            showFeedback('warning', 'Bạn đã hoàn thành vòng đầu tiên. Bây giờ chúng ta sẽ ôn lại các từ bạn đã trả lời sai.');
-            isReviewMode = true;
-            vocabularyData = missedWords.slice();
-            usedWords = [];
-            missedWords = [];
-            updateProgress();
-        } else if (missedWords.length === 0 && isReviewMode) {
-            showFeedback('success', 'Chúc mừng! Bạn đã hoàn thành tất cả từ vựng, kể cả các từ ôn lại.');
-            document.getElementById('quiz-term').textContent = 'Hoàn thành!';
-            document.getElementById('quiz-input').value = '';
-            document.getElementById('continue-btn').disabled = true;
-            updateProgress();
+function loadNextWord(topicId) {
+    const quiz = quizzes[topicId];
+    if (quiz.usedWords.length === quiz.vocabularyData.length) {
+        if (quiz.missedWords.length > 0 && !quiz.isReviewMode) {
+            showFeedback(topicId, 'warning', 'Bạn đã hoàn thành vòng đầu tiên. Bây giờ chúng ta sẽ ôn lại các từ bạn đã trả lời sai.');
+            quiz.isReviewMode = true;
+            quiz.vocabularyData = quiz.missedWords.slice();
+            quiz.usedWords = [];
+            quiz.missedWords = [];
+            updateProgress(topicId);
+        } else if (quiz.missedWords.length === 0 && quiz.isReviewMode) {
+            showFeedback(topicId, 'success', 'Chúc mừng! Bạn đã hoàn thành tất cả từ vựng, kể cả các từ ôn lại.');
+            document.getElementById(`quiz-term-${topicId}`).textContent = 'Hoàn thành!';
+            document.getElementById(`quiz-input-${topicId}`).value = '';
+            document.getElementById(`continue-btn-${topicId}`).disabled = true;
+            updateProgress(topicId);
             return;
-        } else if (missedWords.length === 0) {
-            showFeedback('success', 'Chúc mừng! Bạn đã hoàn thành tất cả từ vựng.');
-            document.getElementById('quiz-term').textContent = 'Hoàn thành!';
-            document.getElementById('quiz-input').value = '';
-            document.getElementById('continue-btn').disabled = true;
-            updateProgress();
+        } else if (quiz.missedWords.length === 0) {
+            showFeedback(topicId, 'success', 'Chúc mừng! Bạn đã hoàn thành tất cả từ vựng.');
+            document.getElementById(`quiz-term-${topicId}`).textContent = 'Hoàn thành!';
+            document.getElementById(`quiz-input-${topicId}`).value = '';
+            document.getElementById(`continue-btn-${topicId}`).disabled = true;
+            updateProgress(topicId);
             return;
         }
     }
 
     let randomIndex;
     do {
-        randomIndex = Math.floor(Math.random() * vocabularyData.length);
-    } while (usedWords.includes(randomIndex));
+        randomIndex = Math.floor(Math.random() * quiz.vocabularyData.length);
+    } while (quiz.usedWords.includes(randomIndex));
 
-    usedWords.push(randomIndex);
-    currentWord = vocabularyData[randomIndex];
-    showEnglish = Math.random() < 0.5;
+    quiz.usedWords.push(randomIndex);
+    quiz.currentWord = quiz.vocabularyData[randomIndex];
+    quiz.showEnglish = Math.random() < 0.5;
 
-    document.getElementById('quiz-term').textContent = showEnglish ? currentWord.english : currentWord.vietnamese;
-    document.getElementById('quiz-input').value = '';
-    document.getElementById('feedback').innerHTML = '';
-    document.getElementById('continue-btn').disabled = false;
-    updateProgress();
+    document.getElementById(`quiz-term-${topicId}`).textContent = quiz.showEnglish ? quiz.currentWord.english : quiz.currentWord.vietnamese;
+    document.getElementById(`quiz-input-${topicId}`).value = '';
+    document.getElementById(`feedback-${topicId}`).innerHTML = '';
+    document.getElementById(`continue-btn-${topicId}`).disabled = false;
+    updateProgress(topicId);
 }
 
-function validateAnswer() {
-    const userAnswer = document.getElementById('quiz-input').value.trim().toLowerCase();
-    const correctAnswer = showEnglish ? currentWord.vietnamese.toLowerCase() : currentWord.english.toLowerCase();
+function validateAnswer(topicId) {
+    const quiz = quizzes[topicId];
+    const userAnswer = document.getElementById(`quiz-input-${topicId}`).value.trim().toLowerCase();
+    const correctAnswer = quiz.showEnglish ? quiz.currentWord.vietnamese.toLowerCase() : quiz.currentWord.english.toLowerCase();
 
     if (userAnswer === '') {
-        showFeedback('warning', 'Vui lòng nhập câu trả lời.');
+        showFeedback(topicId, 'warning', 'Vui lòng nhập câu trả lời.');
         return;
     }
 
     if (userAnswer === correctAnswer) {
-        showFeedback('success', 'Đúng! Chuyển sang từ tiếp theo.');
-        setTimeout(loadNextWord, 1000);
+        showFeedback(topicId, 'success', 'Đúng! Chuyển sang từ tiếp theo.');
+        setTimeout(() => loadNextWord(topicId), 1000);
     } else {
-        showFeedback('danger', 'Sai! Câu trả lời đúng là: ' + correctAnswer + '. Từ này sẽ được ôn lại sau.');
-        if (!missedWords.some(word => word.english === currentWord.english && word.vietnamese === currentWord.vietnamese)) {
-            missedWords.push(currentWord);
+        showFeedback(topicId, 'danger', 'Sai! Câu trả lời đúng là: ' + correctAnswer + '. Từ này sẽ được ôn lại sau.');
+        if (!quiz.missedWords.some(word => word.english === quiz.currentWord.english && word.vietnamese === quiz.currentWord.vietnamese)) {
+            quiz.missedWords.push(quiz.currentWord);
         }
-        setTimeout(loadNextWord, 2000);
+        setTimeout(() => loadNextWord(topicId), 2000);
     }
 }
 
-function showFeedback(type, message) {
-    const feedbackDiv = document.getElementById('feedback');
+function showFeedback(topicId, type, message) {
+    const feedbackDiv = document.getElementById(`feedback-${topicId}`);
     feedbackDiv.innerHTML = '<div class="alert alert-' + type + '" role="alert">' + message + '</div>';
 }
 
-function updateProgress() {
-    const progress = document.getElementById('progress');
-    if (isReviewMode) {
-        progress.textContent = "Ôn lại: " + usedWords.length + "/" + vocabularyData.length + " từ sai";
+function updateProgress(topicId) {
+    const quiz = quizzes[topicId];
+    const progress = document.getElementById(`progress-${topicId}`);
+    if (quiz.isReviewMode) {
+        progress.textContent = "Ôn lại: " + quiz.usedWords.length + "/" + quiz.vocabularyData.length + " từ sai";
     } else {
-        progress.textContent = "Hoàn thành: " + usedWords.length + "/" + vocabularyData.length;
+        progress.textContent = "Hoàn thành: " + quiz.usedWords.length + "/" + quiz.vocabularyData.length;
     }
 }
