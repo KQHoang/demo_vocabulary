@@ -53,7 +53,17 @@ function playPronunciation(topicId) {
     if (currentWord) {
         const utterance = new SpeechSynthesisUtterance(currentWord.english);
         utterance.lang = 'en-US';
-        window.speechSynthesis.speak(utterance);
+
+        // Lấy danh sách voice có sẵn và chọn voice tiếng Anh phù hợp
+        const voices = window.speechSynthesis.getVoices();
+        const voice = voices.find(v => v.lang.startsWith('en') && v.name.toLowerCase().includes('female')) ||
+
+        voices[0];
+            if(voice) {
+                utterance.voice = voice;
+            }
+
+        speechSynthesis.speak(utterance);
     }
 }
 
