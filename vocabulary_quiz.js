@@ -68,19 +68,65 @@ function loadNextWord(topicId) {
             quiz.usedWords = [];
             quiz.missedWords = [];
             updateProgress(topicId);
-        } else if (quiz.missedWords.length === 0 && quiz.isReviewMode) {
-            showFeedback(topicId, 'success', 'Chúc mừng! Bạn đã hoàn thành tất cả từ vựng, kể cả các từ ôn lại.');
+        } else {
+            // Show completion message
+            if (quiz.isReviewMode) {
+                showFeedback(topicId, 'success', 'Chúc mừng! Bạn đã hoàn thành tất cả từ vựng, kể cả các từ ôn lại.');
+            } else {
+                showFeedback(topicId, 'success', 'Chúc mừng! Bạn đã hoàn thành tất cả từ vựng.');
+            }
             document.getElementById(`quiz-term-${topicId}`).textContent = 'Hoàn thành!';
             document.getElementById(`quiz-input-${topicId}`).value = '';
             document.getElementById(`continue-btn-${topicId}`).disabled = true;
             updateProgress(topicId);
-            return;
-        } else if (quiz.missedWords.length === 0) {
-            showFeedback(topicId, 'success', 'Chúc mừng! Bạn đã hoàn thành tất cả từ vựng.');
-            document.getElementById(`quiz-term-${topicId}`).textContent = 'Hoàn thành!';
-            document.getElementById(`quiz-input-${topicId}`).value = '';
-            document.getElementById(`continue-btn-${topicId}`).disabled = true;
-            updateProgress(topicId);
+
+            // Always show 'Ôn lại từ đầu' button
+            let feedbackArea = document.getElementById(`feedback-${topicId}`);
+            let startOverButton = document.createElement('button');
+            startOverButton.className = 'btn btn-primary mt-2';
+            startOverButton.textContent = 'Ôn lại từ đầu';
+            startOverButton.id = `start-over-btn-${topicId}`;
+            startOverButton.onclick = () => {
+                // Re-fetch the original data from the file to ensure all words are included
+                fetch(`vocabulary/${topics.find(t => t.id === topicId).fileName}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        quiz.usedWords = [];
+                        quiz.missedWords = [];
+                        quiz.isReviewMode = false;
+                        quiz.vocabularyData = data; // Reset to freshly loaded data
+                        document.getElementById(`continue-btn-${topicId}`).disabled = false;
+                        feedbackArea.innerHTML = ''; // Clear buttons
+                        loadNextWord(topicId);
+                    })
+                    .catch(error => {
+                        console.error(`Error reloading vocabulary data for ${topicId}:`, error);
+                        showFeedback(topicId, 'danger', 'Có lỗi khi tải lại dữ liệu. Vui lòng thử lại.');
+                    });
+            };
+            feedbackArea.appendChild(startOverButton);
+
+            // Show 'Ôn lại các từ sai' button only if there are missed words in history
+            // Store original missed words if needed
+            if (!quiz.hasOwnProperty('originalMissedWords')) {
+                quiz.originalMissedWords = quiz.missedWords.slice();
+            }
+            if (quiz.originalMissedWords.length > 0) {
+                let reviewMissedButton = document.createElement('button');
+                reviewMissedButton.className = 'btn btn-warning mt-2';
+                reviewMissedButton.style.marginLeft = '12px'; // Set explicit margin for spacing
+                reviewMissedButton.textContent = 'Ôn lại các từ sai';
+                reviewMissedButton.id = `review-missed-btn-${topicId}`;
+                reviewMissedButton.onclick = () => {
+                    quiz.usedWords = [];
+                    quiz.vocabularyData = quiz.originalMissedWords.slice();
+                    quiz.isReviewMode = true;
+                    document.getElementById(`continue-btn-${topicId}`).disabled = false;
+                    feedbackArea.innerHTML = ''; // Clear buttons
+                    loadNextWord(topicId);
+                };
+                feedbackArea.appendChild(reviewMissedButton);
+            }
             return;
         }
     }
