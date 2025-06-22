@@ -43,8 +43,13 @@
     overflow-y: auto;
 }
 
-/* Mobile sidebar styling when toggled */
+/* Responsive design for small screens */
 @media (max-width: 767.98px) {
+    .col-md-9.p-4 {
+        width: 100%;
+        margin-left: 0;
+    }
+    
     #sidebar:not(.d-none) {
         position: fixed;
         top: 0;
@@ -56,18 +61,8 @@
         background-color: #f8f9fa;
         box-shadow: 2px 0 5px rgba(0,0,0,0.3);
     }
+    
     body {
-        overflow-y: hidden; /* Prevent double scrollbar on body when sidebar is visible */
+        overflow-y: hidden; /* Prevent double scrollbar when sidebar is visible */
     }
-    .col-md-9.p-4 {
-        height: auto; /* Adjust height to prevent independent scrolling */
-        overflow-y: visible;
-    }
-}
-
-/* Ensure navbar-toggler-icon displays correctly */
-.navbar-toggler-icon {
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(0, 0, 0, 0.5)' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
-    width: 1.5em;
-    height: 1.5em;
 }

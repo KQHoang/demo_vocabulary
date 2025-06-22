@@ -11,13 +11,12 @@
 </head>
 <body>
     <div class="container-fluid">
+        <nav class="navbar navbar-expand-md navbar-light bg-light d-md-none">
+            <button class="navbar-toggler" type="button" id="menu-toggle" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+        </nav>
         <div class="row">
-            <!-- Hamburger Menu for Mobile -->
-            <div class="d-md-none p-2 bg-light">
-                <button class="btn btn-outline-secondary" id="sidebarToggle" type="button">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-            </div>
             <!-- Sidebar -->
             <div class="col-md-3 bg-light vh-100 p-0 d-none d-md-block" id="sidebar">
                 <div class="nav flex-column nav-pills" id="topicSidebar" role="tablist" aria-orientation="vertical">
@@ -25,7 +24,7 @@
                 </div>
             </div>
             <!-- Content Area -->
-            <div class="col-md-9 p-4 col-12">
+            <div class="col-md-9 p-4">
                 <div class="tab-content" id="topicContent">
                     <!-- Content panes will be dynamically generated here -->
                 </div>
@@ -93,29 +92,25 @@
     });
     </script>
     <script>
-        // Toggle sidebar on mobile
-        document.getElementById('sidebarToggle').addEventListener('click', function(e) {
+        // Toggle sidebar on small screens
+        document.getElementById('menu-toggle').addEventListener('click', function() {
             const sidebar = document.getElementById('sidebar');
             sidebar.classList.toggle('d-none');
-            e.stopPropagation(); // Prevent body click from immediately closing the sidebar
         });
 
-        // Hide sidebar after selection on mobile
-        document.getElementById('topicSidebar').addEventListener('click', function(e) {
-            if (e.target.classList.contains('nav-link') && window.innerWidth < 768) {
-                const sidebar = document.getElementById('sidebar');
+        // Hide sidebar when clicking outside on small screens
+        document.addEventListener('click', function(event) {
+            const sidebar = document.getElementById('sidebar');
+            const menuToggle = document.getElementById('menu-toggle');
+            if (!sidebar.contains(event.target) && !menuToggle.contains(event.target) && window.innerWidth < 768) {
                 sidebar.classList.add('d-none');
             }
         });
 
-        // Hide sidebar when clicking outside on mobile
-        document.body.addEventListener('click', function(e) {
-            if (window.innerWidth < 768) {
-                const sidebar = document.getElementById('sidebar');
-                const toggleButton = document.getElementById('sidebarToggle');
-                if (!sidebar.contains(e.target) && e.target !== toggleButton && !toggleButton.contains(e.target)) {
-                    sidebar.classList.add('d-none');
-                }
+        // Hide sidebar when a menu item is selected on small screens
+        document.getElementById('topicSidebar').addEventListener('click', function(event) {
+            if (event.target.tagName === 'A' && window.innerWidth < 768) {
+                document.getElementById('sidebar').classList.add('d-none');
             }
         });
     </script>
