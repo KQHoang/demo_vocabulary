@@ -103,22 +103,44 @@ function loadNextWord(topicId) {
 function validateAnswer(topicId) {
     const quiz = quizzes[topicId];
     const userAnswer = document.getElementById(`quiz-input-${topicId}`).value.trim().toLowerCase();
-    const correctAnswer = quiz.showEnglish ? quiz.currentWord.vietnamese.toLowerCase() : quiz.currentWord.english.toLowerCase();
 
     if (userAnswer === '') {
         showFeedback(topicId, 'warning', 'Vui lòng nhập câu trả lời.');
+        setTimeout(() => {
+            document.getElementById(`feedback-${topicId}`).innerHTML = '';
+        }, 3000);
         return;
     }
 
-    if (userAnswer === correctAnswer) {
-        showFeedback(topicId, 'success', 'Đúng! Chuyển sang từ tiếp theo.');
-        setTimeout(() => loadNextWord(topicId), 1000);
-    } else {
-        showFeedback(topicId, 'danger', 'Sai! Câu trả lời đúng là: ' + correctAnswer + '. Từ này sẽ được ôn lại sau.');
-        if (!quiz.missedWords.some(word => word.english === quiz.currentWord.english && word.vietnamese === quiz.currentWord.vietnamese)) {
-            quiz.missedWords.push(quiz.currentWord);
+    if (quiz.showEnglish) {
+        // Parse Vietnamese translations, split by comma and slash, ignore content in parentheses
+        const vietnameseText = quiz.currentWord.vietnamese;
+        const cleanVietnamese = vietnameseText.replace(/\s*\([^)]*\)\s*/g, ' ').trim();
+        const translations = cleanVietnamese.split(/[,\/]/).map(answer => answer.trim().toLowerCase()).filter(answer => answer !== '');
+        
+        if (translations.includes(userAnswer)) {
+            showFeedback(topicId, 'success', 'Đúng! (' + vietnameseText + ') Chuyển sang từ tiếp theo.');
+            setTimeout(() => loadNextWord(topicId), 3000);
+        } else {
+            showFeedback(topicId, 'danger', 'Sai! Câu trả lời đúng là: ' + vietnameseText + '. Từ này sẽ được ôn lại sau.');
+            if (!quiz.missedWords.some(word => word.english === quiz.currentWord.english && word.vietnamese === quiz.currentWord.vietnamese)) {
+                quiz.missedWords.push(quiz.currentWord);
+            }
+            setTimeout(() => loadNextWord(topicId), 3000);
         }
-        setTimeout(() => loadNextWord(topicId), 2000);
+    } else {
+        const correctAnswer = quiz.currentWord.english.toLowerCase();
+        const displayAnswer = quiz.currentWord.english;
+        if (userAnswer === correctAnswer) {
+            showFeedback(topicId, 'success', 'Đúng! (' + displayAnswer + ') Chuyển sang từ tiếp theo.');
+            setTimeout(() => loadNextWord(topicId), 3000);
+        } else {
+            showFeedback(topicId, 'danger', 'Sai! Câu trả lời đúng là: ' + displayAnswer + '. Từ này sẽ được ôn lại sau.');
+            if (!quiz.missedWords.some(word => word.english === quiz.currentWord.english && word.vietnamese === quiz.currentWord.vietnamese)) {
+                quiz.missedWords.push(quiz.currentWord);
+            }
+            setTimeout(() => loadNextWord(topicId), 3000);
+        }
     }
 }
 
