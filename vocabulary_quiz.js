@@ -2,6 +2,10 @@
     // Initialization is triggered from index.html after DOM elements are created
 
 let quizzes = {}; // Object to store quiz data for each topic
+// Success sound will be created dynamically each time to avoid state issues
+let isAudioInitialized = false; // Flag to track if audio has been initialized after user interaction
+let successSoundInitialized = null; // Holder for initialized audio object
+let wrongSoundInitialized = null; // Holder for initialized wrong audio object
 
 function initializeQuizzes() {
     topics.forEach(topic => {
@@ -14,6 +18,18 @@ function initializeQuizzes() {
             isReviewMode: false,
             isInitialized: false
         };
+        
+        // Add event listener for first user interaction to initialize audio
+const initAudioOnInteraction = () => {
+            if (!isAudioInitialized) {
+                successSoundInitialized = new Audio('assets/sound/success.wav');
+                wrongSoundInitialized = new Audio('assets/sound/wrong.wav');
+                isAudioInitialized = true;
+                // Remove the event listener after initialization
+                document.removeEventListener('click', initAudioOnInteraction);
+            }
+        };
+        document.addEventListener('click', initAudioOnInteraction);
         
         // Load vocabulary data for this topic
         fetch(`vocabulary/${topic.fileName}`)
@@ -167,11 +183,23 @@ function validateAnswer(topicId) {
         
         if (translations.includes(userAnswer)) {
             showFeedback(topicId, 'success', 'Đúng! (' + vietnameseText + ') Chuyển sang từ tiếp theo.');
+if (isAudioInitialized && successSoundInitialized) {
+                successSoundInitialized.play().catch(error => console.error('Error playing initialized sound:', error));
+            } else {
+                let successSound = new Audio('assets/sound/success.wav');
+                successSound.play().catch(error => console.error('Error playing sound:', error));
+            }
             setTimeout(() => loadNextWord(topicId), 3000);
         } else {
-            showFeedback(topicId, 'danger', 'Sai! Câu trả lời đúng là: ' + vietnameseText + '. Từ này sẽ được ôn lại sau.');
+showFeedback(topicId, 'danger', 'Sai! Câu trả lời đúng là: ' + vietnameseText + '. Từ này sẽ được ôn lại sau.');
             if (!quiz.missedWords.some(word => word.english === quiz.currentWord.english && word.vietnamese === quiz.currentWord.vietnamese)) {
                 quiz.missedWords.push(quiz.currentWord);
+            }
+            if (isAudioInitialized && wrongSoundInitialized) {
+                wrongSoundInitialized.play().catch(error => console.error('Error playing initialized wrong sound:', error));
+            } else {
+                let wrongSound = new Audio('assets/sound/wrong.wav');
+                wrongSound.play().catch(error => console.error('Error playing wrong sound:', error));
             }
             setTimeout(() => loadNextWord(topicId), 3000);
         }
@@ -180,11 +208,23 @@ function validateAnswer(topicId) {
         const displayAnswer = quiz.currentWord.english;
         if (userAnswer === correctAnswer) {
             showFeedback(topicId, 'success', 'Đúng! (' + displayAnswer + ') Chuyển sang từ tiếp theo.');
+            if (isAudioInitialized && successSoundInitialized) {
+                successSoundInitialized.play().catch(error => console.error('Error playing initialized sound:', error));
+} else {
+                let successSound = new Audio('assets/sound/success.wav');
+                successSound.play().catch(error => console.error('Error playing sound:', error));
+            }
             setTimeout(() => loadNextWord(topicId), 3000);
         } else {
-            showFeedback(topicId, 'danger', 'Sai! Câu trả lời đúng là: ' + displayAnswer + '. Từ này sẽ được ôn lại sau.');
+showFeedback(topicId, 'danger', 'Sai! Câu trả lời đúng là: ' + displayAnswer + '. Từ này sẽ được ôn lại sau.');
             if (!quiz.missedWords.some(word => word.english === quiz.currentWord.english && word.vietnamese === quiz.currentWord.vietnamese)) {
                 quiz.missedWords.push(quiz.currentWord);
+            }
+            if (isAudioInitialized && wrongSoundInitialized) {
+                wrongSoundInitialized.play().catch(error => console.error('Error playing initialized wrong sound:', error));
+            } else {
+                let wrongSound = new Audio('assets/sound/wrong.wav');
+                wrongSound.play().catch(error => console.error('Error playing wrong sound:', error));
             }
             setTimeout(() => loadNextWord(topicId), 3000);
         }
@@ -194,6 +234,17 @@ function validateAnswer(topicId) {
 function showFeedback(topicId, type, message) {
     const feedbackDiv = document.getElementById(`feedback-${topicId}`);
     feedbackDiv.innerHTML = '<div class="alert alert-' + type + '" role="alert">' + message + '</div>';
+    if (type === 'success') {
+        // Add a test button to manually play the sound for debugging
+        const testButton = document.createElement('button');
+        testButton.className = 'btn btn-info mt-2';
+testButton.textContent = 'Test Success Sound';
+        testButton.onclick = () => {
+            let successSound = new Audio('assets/sound/success.wav');
+            successSound.play().catch(error => console.error('Manual test error:', error));
+        };
+        feedbackDiv.appendChild(testButton);
+    }
 }
 
 function updateProgress(topicId) {
