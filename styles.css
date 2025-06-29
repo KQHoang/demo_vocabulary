@@ -66,3 +66,22 @@
         overflow-y: hidden; /* Prevent double scrollbar when sidebar is visible */
     }
 }
+
+/* Styles for vocabulary segment buttons */
+.btn-group .btn-outline-primary {
+    margin-right: 5px;
+    margin-bottom: 5px;
+    font-size: 0.9rem;
+    padding: 5px 10px;
+}
+
+.btn-group .btn-outline-primary.active {
+    background-color: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.btn-group .btn-outline-primary:hover:not(.active) {
+    background-color: #e9ecef;
+    color: #007bff;
+}

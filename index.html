@@ -62,7 +62,10 @@
             pane.role = 'tabpanel';
             pane.setAttribute('aria-labelledby', `${topic.id}-tab`);
             pane.innerHTML = `
-                <h2>${topic.name}</h2>
+                <div class="d-flex align-items-center mb-3">
+                    <h2 class="me-3 mb-0">${topic.name}</h2>
+                    <div id="segment-buttons-${topic.id}" class="btn-group" role="group" aria-label="Vocabulary segments"></div>
+                </div>
                 <p>Đây là nội dung về chủ đề ${topic.name}. Bạn có thể tìm hiểu thêm về các từ vựng liên quan đến chủ đề này.</p>
                 <div class="vocabulary-quiz mt-4">
                     <h4>Luyện tập từ vựng</h4>

@@ -1,5 +1,5 @@
 // Vocabulary Quiz Functionality
-    // Initialization is triggered from index.html after DOM elements are created
+// Initialization is triggered from index.html after DOM elements are created
 
 let quizzes = {}; // Object to store quiz data for each topic
 // Success sound will be created dynamically each time to avoid state issues
@@ -11,16 +11,18 @@ function initializeQuizzes() {
     topics.forEach(topic => {
         quizzes[topic.id] = {
             vocabularyData: [],
+            fullVocabularyData: [], // Store the complete dataset
             usedWords: [],
             missedWords: [],
             currentWord: null,
             showEnglish: false,
             isReviewMode: false,
-            isInitialized: false
+            isInitialized: false,
+            currentSegment: 'all' // Default to loading all data
         };
         
         // Add event listener for first user interaction to initialize audio
-const initAudioOnInteraction = () => {
+        const initAudioOnInteraction = () => {
             if (!isAudioInitialized) {
                 successSoundInitialized = new Audio('assets/sound/success.wav');
                 wrongSoundInitialized = new Audio('assets/sound/wrong.wav');
@@ -35,8 +37,10 @@ const initAudioOnInteraction = () => {
         fetch(`vocabulary/${topic.fileName}`)
             .then(response => response.json())
             .then(data => {
-                quizzes[topic.id].vocabularyData = data;
+                quizzes[topic.id].fullVocabularyData = data;
+                quizzes[topic.id].vocabularyData = data; // Initially load all data
                 quizzes[topic.id].isInitialized = true;
+                createSegmentButtons(topic.id, data.length);
                 if (topic.id === topics[0].id) {
                     loadNextWord(topic.id);
                 }
@@ -62,6 +66,70 @@ const initAudioOnInteraction = () => {
             }
         }
     });
+}
+
+// Function to create segment buttons based on vocabulary length
+function createSegmentButtons(topicId, dataLength) {
+    const segmentContainer = document.getElementById(`segment-buttons-${topicId}`);
+    segmentContainer.innerHTML = ''; // Clear any existing buttons
+
+    // Create "Tất cả" button (default active)
+    const allButton = document.createElement('button');
+    allButton.type = 'button';
+    allButton.className = 'btn btn-outline-primary active';
+    allButton.textContent = 'Tất cả';
+    allButton.onclick = () => loadSegment(topicId, 'all');
+    segmentContainer.appendChild(allButton);
+
+    // Calculate number of segments (10 words per segment)
+    const segmentSize = 10;
+    const numSegments = Math.ceil(dataLength / segmentSize);
+    
+    // Create buttons for each segment
+    for (let i = 0; i < numSegments; i++) {
+        const start = i * segmentSize + 1;
+        const end = Math.min((i + 1) * segmentSize, dataLength);
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'btn btn-outline-primary';
+        button.textContent = `${start} - ${end}`;
+        button.onclick = () => loadSegment(topicId, i);
+        segmentContainer.appendChild(button);
+    }
+}
+
+// Function to load a specific segment of vocabulary data
+function loadSegment(topicId, segmentIndex) {
+    const quiz = quizzes[topicId];
+    quiz.currentSegment = segmentIndex;
+    quiz.usedWords = [];
+    quiz.missedWords = [];
+    quiz.isReviewMode = false;
+
+    // Reset to full data if "all" is selected
+    if (segmentIndex === 'all') {
+        quiz.vocabularyData = quiz.fullVocabularyData;
+    } else {
+        // Load specific segment (10 words per segment)
+        const segmentSize = 10;
+        const startIndex = segmentIndex * segmentSize;
+        const endIndex = Math.min(startIndex + segmentSize, quiz.fullVocabularyData.length);
+        quiz.vocabularyData = quiz.fullVocabularyData.slice(startIndex, endIndex);
+    }
+
+    // Update active button
+    const segmentContainer = document.getElementById(`segment-buttons-${topicId}`);
+    const buttons = segmentContainer.getElementsByTagName('button');
+    for (let button of buttons) {
+        button.classList.remove('active');
+    }
+    if (segmentIndex === 'all') {
+        buttons[0].classList.add('active');
+    } else {
+        buttons[segmentIndex + 1].classList.add('active');
+    }
+
+    loadNextWord(topicId);
 }
 
 function playPronunciation(topicId) {
@@ -183,7 +251,7 @@ function validateAnswer(topicId) {
         
         if (translations.includes(userAnswer)) {
             showFeedback(topicId, 'success', 'Đúng! (' + vietnameseText + ') Chuyển sang từ tiếp theo.');
-if (isAudioInitialized && successSoundInitialized) {
+            if (isAudioInitialized && successSoundInitialized) {
                 successSoundInitialized.play().catch(error => console.error('Error playing initialized sound:', error));
             } else {
                 let successSound = new Audio('assets/sound/success.wav');
@@ -191,7 +259,7 @@ if (isAudioInitialized && successSoundInitialized) {
             }
             setTimeout(() => loadNextWord(topicId), 3000);
         } else {
-showFeedback(topicId, 'danger', 'Sai! Câu trả lời đúng là: ' + vietnameseText + '. Từ này sẽ được ôn lại sau.');
+            showFeedback(topicId, 'danger', 'Sai! Câu trả lời đúng là: ' + vietnameseText + '. Từ này sẽ được ôn lại sau.');
             if (!quiz.missedWords.some(word => word.english === quiz.currentWord.english && word.vietnamese === quiz.currentWord.vietnamese)) {
                 quiz.missedWords.push(quiz.currentWord);
             }
@@ -210,13 +278,13 @@ showFeedback(topicId, 'danger', 'Sai! Câu trả lời đúng là: ' + vietnames
             showFeedback(topicId, 'success', 'Đúng! (' + displayAnswer + ') Chuyển sang từ tiếp theo.');
             if (isAudioInitialized && successSoundInitialized) {
                 successSoundInitialized.play().catch(error => console.error('Error playing initialized sound:', error));
-} else {
+            } else {
                 let successSound = new Audio('assets/sound/success.wav');
                 successSound.play().catch(error => console.error('Error playing sound:', error));
             }
             setTimeout(() => loadNextWord(topicId), 3000);
         } else {
-showFeedback(topicId, 'danger', 'Sai! Câu trả lời đúng là: ' + displayAnswer + '. Từ này sẽ được ôn lại sau.');
+            showFeedback(topicId, 'danger', 'Sai! Câu trả lời đúng là: ' + displayAnswer + '. Từ này sẽ được ôn lại sau.');
             if (!quiz.missedWords.some(word => word.english === quiz.currentWord.english && word.vietnamese === quiz.currentWord.vietnamese)) {
                 quiz.missedWords.push(quiz.currentWord);
             }
@@ -234,17 +302,6 @@ showFeedback(topicId, 'danger', 'Sai! Câu trả lời đúng là: ' + displayAn
 function showFeedback(topicId, type, message) {
     const feedbackDiv = document.getElementById(`feedback-${topicId}`);
     feedbackDiv.innerHTML = '<div class="alert alert-' + type + '" role="alert">' + message + '</div>';
-    if (type === 'success') {
-        // Add a test button to manually play the sound for debugging
-        const testButton = document.createElement('button');
-        testButton.className = 'btn btn-info mt-2';
-testButton.textContent = 'Test Success Sound';
-        testButton.onclick = () => {
-            let successSound = new Audio('assets/sound/success.wav');
-            successSound.play().catch(error => console.error('Manual test error:', error));
-        };
-        feedbackDiv.appendChild(testButton);
-    }
 }
 
 function updateProgress(topicId) {
