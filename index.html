@@ -41,23 +41,26 @@
     document.addEventListener('DOMContentLoaded', function() {
         const sidebar = document.getElementById('topicSidebar');
         const contentArea = document.getElementById('topicContent');
+        const savedTopicId = localStorage.getItem('activeTopicId');
+        const initialTopicId = topics.some(topic => topic.id === savedTopicId) ? savedTopicId : topics[0].id;
         
         topics.forEach((topic, index) => {
+            const isActive = topic.id === initialTopicId;
             // Create sidebar item
             const link = document.createElement('a');
-            link.className = `nav-link ${index === 0 ? 'active' : ''}`;
+            link.className = `nav-link ${isActive ? 'active' : ''}`;
             link.id = `${topic.id}-tab`;
             link.setAttribute('data-bs-toggle', 'pill');
             link.href = `#${topic.id}`;
             link.role = 'tab';
             link.setAttribute('aria-controls', topic.id);
-            link.setAttribute('aria-selected', index === 0 ? 'true' : 'false');
+            link.setAttribute('aria-selected', isActive ? 'true' : 'false');
             link.textContent = topic.name;
             sidebar.appendChild(link);
             
             // Create content pane
             const pane = document.createElement('div');
-            pane.className = `tab-pane fade ${index === 0 ? 'show active' : ''}`;
+            pane.className = `tab-pane fade ${isActive ? 'show active' : ''}`;
             pane.id = topic.id;
             pane.role = 'tabpanel';
             pane.setAttribute('aria-labelledby', `${topic.id}-tab`);
@@ -90,6 +93,16 @@
             contentArea.appendChild(pane);
         });
         
+        // Save the active topic when the user switches tabs
+        sidebar.addEventListener('click', function(event) {
+            if (event.target.tagName === 'A') {
+                const targetTopicId = event.target.id.replace(/-tab$/, '');
+                if (topics.some(topic => topic.id === targetTopicId)) {
+                    localStorage.setItem('activeTopicId', targetTopicId);
+                }
+            }
+        });
+
         // Initialize quizzes after DOM elements are created
         initializeQuizzes();
     });

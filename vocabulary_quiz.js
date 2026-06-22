@@ -7,7 +7,30 @@ let isAudioInitialized = false; // Flag to track if audio has been initialized a
 let successSoundInitialized = null; // Holder for initialized audio object
 let wrongSoundInitialized = null; // Holder for initialized wrong audio object
 
+function normalizeText(text) {
+    if (typeof text !== 'string') return '';
+
+    // Remove diacritics, keep letters/numbers and normalize spacing
+    return text
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-zA-Z0-9\s]/g, ' ')
+        .toLowerCase()
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function getAnswerOptions(text) {
+    const cleanedText = text.replace(/\([^)]*\)/g, ' ');
+    return cleanedText
+        .split(/[,\/]/)
+        .map(option => normalizeText(option))
+        .filter(option => option.length > 0);
+}
+
 function initializeQuizzes() {
+    const savedTopicId = localStorage.getItem('activeTopicId');
+    const initialTopicId = topics.some(topic => topic.id === savedTopicId) ? savedTopicId : topics[0].id;
     topics.forEach(topic => {
         quizzes[topic.id] = {
             vocabularyData: [],
@@ -41,7 +64,7 @@ function initializeQuizzes() {
                 quizzes[topic.id].vocabularyData = data; // Initially load all data
                 quizzes[topic.id].isInitialized = true;
                 createSegmentButtons(topic.id, data.length);
-                if (topic.id === topics[0].id) {
+                if (topic.id === initialTopicId) {
                     loadNextWord(topic.id);
                 }
             })
@@ -61,6 +84,7 @@ function initializeQuizzes() {
     document.getElementById('topicSidebar').addEventListener('click', function(e) {
         if (e.target.classList.contains('nav-link')) {
             const topicId = e.target.id.split('-')[0];
+            localStorage.setItem('activeTopicId', topicId);
             if (quizzes[topicId] && quizzes[topicId].isInitialized && quizzes[topicId].usedWords.length === 0) {
                 loadNextWord(topicId);
             }
@@ -139,6 +163,52 @@ function playPronunciation(topicId) {
         utterance.lang = 'en-US';
 
         window.speechSynthesis.speak(utterance);
+    }
+}
+
+// Play a feedback sound (Audio element) then pronounce the current English word,
+// and after pronunciation finishes, load the next word. If `audioEl` is null
+// the function will immediately pronounce then proceed.
+function proceedAfterFeedback(topicId, audioEl) {
+    const quiz = quizzes[topicId];
+
+    const pronounceAndNext = () => {
+        if (!quiz || !quiz.currentWord) {
+            // fallback: move to next immediately
+            loadNextWord(topicId);
+            return;
+        }
+        const utterance = new SpeechSynthesisUtterance(quiz.currentWord.english);
+        utterance.lang = 'en-US';
+        utterance.onend = () => {
+            loadNextWord(topicId);
+        };
+        // If speak throws or is not available, fallback to next after 1.5s
+        try {
+            window.speechSynthesis.speak(utterance);
+        } catch (e) {
+            console.error('Speech synthesis failed:', e);
+            setTimeout(() => loadNextWord(topicId), 1500);
+        }
+    };
+
+    if (audioEl) {
+        // Listen for audio end; if it errors, fallback to pronounce immediately
+        const onEnded = () => {
+            audioEl.removeEventListener('ended', onEnded);
+            pronounceAndNext();
+        };
+        audioEl.addEventListener('ended', onEnded);
+        const playPromise = audioEl.play();
+        if (playPromise && playPromise.catch) {
+            playPromise.catch(err => {
+                console.error('Audio play failed:', err);
+                audioEl.removeEventListener('ended', onEnded);
+                pronounceAndNext();
+            });
+        }
+    } else {
+        pronounceAndNext();
     }
 }
 
@@ -233,7 +303,8 @@ function loadNextWord(topicId) {
 
 function validateAnswer(topicId) {
     const quiz = quizzes[topicId];
-    const userAnswer = document.getElementById(`quiz-input-${topicId}`).value.trim().toLowerCase();
+    const rawAnswer = document.getElementById(`quiz-input-${topicId}`).value;
+    const userAnswer = normalizeText(rawAnswer);
 
     if (userAnswer === '') {
         showFeedback(topicId, 'warning', 'Vui lòng nhập câu trả lời.');
@@ -246,55 +317,42 @@ function validateAnswer(topicId) {
     if (quiz.showEnglish) {
         // Parse Vietnamese translations, split by comma and slash, ignore content in parentheses
         const vietnameseText = quiz.currentWord.vietnamese;
-        const cleanVietnamese = vietnameseText.replace(/\s*\([^)]*\)\s*/g, ' ').trim();
-        const translations = cleanVietnamese.split(/[,\/]/).map(answer => answer.trim().toLowerCase()).filter(answer => answer !== '');
+        const translations = getAnswerOptions(vietnameseText);
         
         if (translations.includes(userAnswer)) {
             showFeedback(topicId, 'success', 'Đúng! (' + vietnameseText + ') Chuyển sang từ tiếp theo.');
-            if (isAudioInitialized && successSoundInitialized) {
-                successSoundInitialized.play().catch(error => console.error('Error playing initialized sound:', error));
-            } else {
-                let successSound = new Audio('assets/sound/success.wav');
-                successSound.play().catch(error => console.error('Error playing sound:', error));
-            }
-            setTimeout(() => loadNextWord(topicId), 3000);
+            // Disable button to prevent multiple submits, then play success sound -> pronounce -> next
+            document.getElementById(`continue-btn-${topicId}`).disabled = true;
+            let successAudioEl = (isAudioInitialized && successSoundInitialized) ? successSoundInitialized : new Audio('assets/sound/success.wav');
+            proceedAfterFeedback(topicId, successAudioEl);
         } else {
             showFeedback(topicId, 'danger', 'Sai! Câu trả lời đúng là: ' + vietnameseText + '. Từ này sẽ được ôn lại sau.');
             if (!quiz.missedWords.some(word => word.english === quiz.currentWord.english && word.vietnamese === quiz.currentWord.vietnamese)) {
                 quiz.missedWords.push(quiz.currentWord);
             }
-            if (isAudioInitialized && wrongSoundInitialized) {
-                wrongSoundInitialized.play().catch(error => console.error('Error playing initialized wrong sound:', error));
-            } else {
-                let wrongSound = new Audio('assets/sound/wrong.wav');
-                wrongSound.play().catch(error => console.error('Error playing wrong sound:', error));
-            }
-            setTimeout(() => loadNextWord(topicId), 3000);
+            // Disable button to prevent multiple submits, then play wrong sound -> pronounce -> next
+            document.getElementById(`continue-btn-${topicId}`).disabled = true;
+            let wrongAudioEl = (isAudioInitialized && wrongSoundInitialized) ? wrongSoundInitialized : new Audio('assets/sound/wrong.wav');
+            proceedAfterFeedback(topicId, wrongAudioEl);
         }
     } else {
-        const correctAnswer = quiz.currentWord.english.toLowerCase();
+        const correctAnswer = normalizeText(quiz.currentWord.english);
         const displayAnswer = quiz.currentWord.english;
         if (userAnswer === correctAnswer) {
             showFeedback(topicId, 'success', 'Đúng! (' + displayAnswer + ') Chuyển sang từ tiếp theo.');
-            if (isAudioInitialized && successSoundInitialized) {
-                successSoundInitialized.play().catch(error => console.error('Error playing initialized sound:', error));
-            } else {
-                let successSound = new Audio('assets/sound/success.wav');
-                successSound.play().catch(error => console.error('Error playing sound:', error));
-            }
-            setTimeout(() => loadNextWord(topicId), 3000);
+            // Disable button to prevent multiple submits, then play success sound -> pronounce -> next
+            document.getElementById(`continue-btn-${topicId}`).disabled = true;
+            let successAudioEl2 = (isAudioInitialized && successSoundInitialized) ? successSoundInitialized : new Audio('assets/sound/success.wav');
+            proceedAfterFeedback(topicId, successAudioEl2);
         } else {
             showFeedback(topicId, 'danger', 'Sai! Câu trả lời đúng là: ' + displayAnswer + '. Từ này sẽ được ôn lại sau.');
             if (!quiz.missedWords.some(word => word.english === quiz.currentWord.english && word.vietnamese === quiz.currentWord.vietnamese)) {
                 quiz.missedWords.push(quiz.currentWord);
             }
-            if (isAudioInitialized && wrongSoundInitialized) {
-                wrongSoundInitialized.play().catch(error => console.error('Error playing initialized wrong sound:', error));
-            } else {
-                let wrongSound = new Audio('assets/sound/wrong.wav');
-                wrongSound.play().catch(error => console.error('Error playing wrong sound:', error));
-            }
-            setTimeout(() => loadNextWord(topicId), 3000);
+            // Disable button to prevent multiple submits, then play wrong sound -> pronounce -> next
+            document.getElementById(`continue-btn-${topicId}`).disabled = true;
+            let wrongAudioEl2 = (isAudioInitialized && wrongSoundInitialized) ? wrongSoundInitialized : new Audio('assets/sound/wrong.wav');
+            proceedAfterFeedback(topicId, wrongAudioEl2);
         }
     }
 }
