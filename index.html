@@ -69,19 +69,29 @@
                     <h2 class="me-3 mb-0">${topic.name}</h2>
                     <div id="segment-buttons-${topic.id}" class="btn-group" role="group" aria-label="Vocabulary segments"></div>
                 </div>
+                <div class="quiz-mode-switch mb-3">
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="quiz-mode-${topic.id}" id="quiz-mode-english-${topic.id}" value="english" checked>
+                        <label class="form-check-label" for="quiz-mode-english-${topic.id}">Điền nghĩa Tiếng Anh</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="quiz-mode-${topic.id}" id="quiz-mode-vietnamese-${topic.id}" value="vietnamese">
+                        <label class="form-check-label" for="quiz-mode-vietnamese-${topic.id}">Điền nghĩa Tiếng Việt</label>
+                    </div>
+                </div>
                 <p>Đây là nội dung về chủ đề ${topic.name}. Bạn có thể tìm hiểu thêm về các từ vựng liên quan đến chủ đề này.</p>
                 <div class="vocabulary-quiz mt-4">
                     <h4>Luyện tập từ vựng</h4>
                     <div class="card">
                         <div class="card-body">
-                            <p class="card-text">Dịch từ sau sang tiếng Việt hoặc tiếng Anh:</p>
+                            <p class="card-text" id="quiz-instruction-${topic.id}">Dịch từ sau sang tiếng Anh:</p>
                             <div class="d-flex align-items-center mb-3">
                                 <h5 id="quiz-term-${topic.id}" class="card-title me-2 mb-0">...</h5>
                                 <button id="pronunciation-btn-${topic.id}" class="btn btn-outline-secondary btn-sm" title="Nghe phát âm tiếng Anh">Phát âm</button>
                             </div>
                             <div class="mb-3">
-                                <label for="quiz-input-${topic.id}" class="form-label">Câu trả lời của bạn:</label>
-                                <input type="text" class="form-control" id="quiz-input-${topic.id}" placeholder="Nhập câu trả lời">
+                                <label for="quiz-input-${topic.id}" class="form-label" id="quiz-answer-label-${topic.id}">Câu trả lời của bạn (tiếng Anh):</label>
+                                <input type="text" class="form-control" id="quiz-input-${topic.id}" placeholder="Nhập nghĩa tiếng Anh">
                             </div>
                             <button id="continue-btn-${topic.id}" class="btn btn-primary">Tiếp tục</button>
                             <div id="feedback-${topic.id}" class="mt-3"></div>
